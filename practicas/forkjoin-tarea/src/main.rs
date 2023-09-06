@@ -2,14 +2,20 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::{File, read_dir};
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::process;
+use std::time::Instant;
+use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 
 fn main() {
     /*if let Err(err) = test_csv_2() {
         println!("{}", err);
         process::exit(1);
     }*/
-    read_csv_seq();
+    let start = Instant::now();
+    // read_csv_seq();
+    read_csv_par();
+    println!("{:?}", start.elapsed());
 }
 
 fn test_csv() -> Result<(), Box<dyn Error>> {
@@ -42,7 +48,7 @@ fn test_csv_2() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
+// TODO: todavía no funciona
 fn read_csv_seq_std() {
     let result = read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/archive")).unwrap()
         .map(|dir_entry| dir_entry.unwrap().path())
@@ -97,9 +103,10 @@ fn read_csv_seq() {
             }
             // println!("{:?}", views_per_channel);
             views_per_channel
-    }).fold(HashMap::new(), |mut acc, views_per_channel| {
-        views_per_channel.iter().for_each(|(k, v)| *acc.entry(k.clone()).or_insert(0) += v);
-        acc
+        })
+        .fold(HashMap::new(), |mut acc, views_per_channel| {
+            views_per_channel.iter().for_each(|(k, v)| *acc.entry(k.clone()).or_insert(0) += v);
+            acc
     });
 
     println!("{:?}", result);
@@ -107,3 +114,43 @@ fn read_csv_seq() {
     println!("Canales {:?}", result.keys().count())
 
 }
+
+fn read_csv_par() {
+    let result = read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/archive")).unwrap()
+        .map(|dir_entry| dir_entry.unwrap().path())
+        .filter(|path| {
+            let result = path.extension().unwrap() == "csv";
+            // println!("Filtering file: {:?}, result {:?}", path, result);
+            return result;
+        })
+        .collect::<Vec<PathBuf>>()
+        .par_iter()
+        .map(|path| {
+            // println!("Opening file: {:?}", path);
+            let file = File::open(path);
+            let mut reader = csv::Reader::from_reader(file.unwrap());
+            let mut views_per_channel = HashMap::new();
+            for result in reader.records() {
+                let record = result.ok();
+                if record.is_none() {
+                    continue
+                }
+                let u_record = record.unwrap();
+                let channel_title = String::from(&u_record[3]);
+                let views: i64 = u_record[7].parse().unwrap();
+                *views_per_channel.entry(channel_title).or_insert(0) += views;
+            }
+            // println!("{:?}", views_per_channel);
+            views_per_channel
+        })
+        .reduce(|| HashMap::new(), |mut acc, views_per_channel| {
+            views_per_channel.iter().for_each(|(k, v)| *acc.entry(k.clone()).or_insert(0) += v);
+            acc
+        });
+
+    println!("{:?}", result);
+
+    println!("Canales {:?}", result.keys().count())
+
+}
+
