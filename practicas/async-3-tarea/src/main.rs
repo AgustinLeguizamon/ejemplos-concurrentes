@@ -75,24 +75,25 @@ async fn async_main() -> Result<ObservationResponseVec, reqwest::Error> {
     let species_codes: Vec<String> = observations.iter().map(|o| o.species_code.clone()).collect();
     println!("species_codes = {:?}", species_codes);
 
-    //let species_observations_futures = find_observations_by_species_codes(species_codes);
+    let species_observations_futures = find_observations_by_species_codes(species_codes);
+    println!("species_observations_futures = {:?}", species_observations_futures.await);
 
     Ok(observations)
 }
-/*
-async fn find_observations_by_species_codes(species_codes: Vec<String>) -> Result<Vec<ObservationResponseVec>, reqwest::Error> {
+
+async fn find_observations_by_species_codes(species_codes: Vec<String>) -> Vec<Result<ObservationResponseVec, reqwest::Error>> {
     let observations_futures = species_codes.into_iter().map(|code| find_observations_by_species_code(code));
-    return Ok(join_all(observations_futures).await?);
+    // TODO: join_all ejecuta los futures de manera oncurrente?
+    return join_all(observations_futures).await;
 }
 
 async fn find_observations_by_species_code(code: String) -> Result<ObservationResponseVec, reqwest::Error> {
-    let client = Client::new();
+    let client = reqwest::Client::new();
     return Ok(client
         .get(format!("https://api.ebird.org/v2/data/obs/KZ/recent/{}", code))
-        .header("x-ebirdapitoken", &API_KEY)
+        .header("x-ebirdapitoken", "ekgg6ikp80gb")
         .send()
         .await?
         .json::<ObservationResponseVec>()
         .await?);
 }
-*/
