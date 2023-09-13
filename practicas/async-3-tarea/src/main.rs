@@ -78,12 +78,12 @@ async fn async_main() -> Result<ObservationResponseVec, reqwest::Error> {
     let species_observations_futures = find_observations_by_species_codes(species_codes);
     println!("species_observations_futures = {:?}", species_observations_futures.await);
 
-    Ok(observations)
+    Ok(species_observations_futures)
 }
 
 async fn find_observations_by_species_codes(species_codes: Vec<String>) -> Vec<Result<ObservationResponseVec, reqwest::Error>> {
     let observations_futures = species_codes.into_iter().map(|code| find_observations_by_species_code(code));
-    // TODO: join_all ejecuta los futures de manera oncurrente?
+    // TODO: join_all ejecuta los futures de manera concurrente? Si, es la idea de usar un join_all pq si uso un for lo haría de forma secuencial
     return join_all(observations_futures).await;
 }
 
