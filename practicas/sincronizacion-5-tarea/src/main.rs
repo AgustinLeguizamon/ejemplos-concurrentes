@@ -23,7 +23,6 @@ fn main() {
     // por ahora solo uso un bool para indicar si esta comiendo o no
     let estado_filosofos = Arc::new(RwLock::new(vec![ESTADO::PENSANDO, ESTADO::PENSANDO, ESTADO::PENSANDO, ESTADO::PENSANDO, ESTADO::PENSANDO]));
 
-
     let filosofos:Vec<JoinHandle<()>> = (0 .. N)
         .map(|id| {
             let palitos_local = palitos.clone();
@@ -38,27 +37,33 @@ fn main() {
 }
 
 fn filosofo(id: usize, palitos_local: Arc<Vec<Semaphore>>, estado_filosofos_local: Arc<RwLock<Vec<ESTADO>>>) {
+    let palito_izq = &palitos_local[id];
+    let palito_der = &palitos_local[(id + 1) % N];
+    let der = (id + 1) % 5;
+    let izq = if id == 0 { N - 1 } else { id - 1 };
+
+    thread::sleep(Duration::from_millis(100 * id as u64));
+
     loop {
-        thread::sleep(Duration::from_millis(thread_rng().gen_range(500, 1500)));
+        thread::sleep(Duration::from_millis(1000));
         println!("filosofo {} pensando", id);
-        let der = (id + 1) % 5;
-        let izq = if id == 0 { N - 1 } else { id - 1 };
+
         // si resulta que mis vecinos estan esperando palitos entonces no intento tomar ninguno
         if let Ok(mut estados_filosofos_guard) = estado_filosofos_local.write() {
             if (*estados_filosofos_guard)[der] == ESTADO::HAMBRIENTO && (*estados_filosofos_guard)[izq] == ESTADO::HAMBRIENTO {
                 continue
+            } else {
+                (*estados_filosofos_guard)[id] = ESTADO::HAMBRIENTO
             }
         }
 
-        if let Ok(mut estados_filosofos_guard) = estado_filosofos_local.write() {
-            (*estados_filosofos_guard)[id] = ESTADO::HAMBRIENTO
-        }
-
         println!("filosofo {} esperando palito izq", id);
-        let palito_izq_guard = &palitos_local[id].access();
+        palito_izq.access();
+
+        thread::sleep(Duration::from_millis(1000));
 
         println!("filosofo {} esperando palito der", id);
-        let palito_der_guard = &palitos_local[(id + 1) % N].access();
+        palito_der.access();
 
         if let Ok(mut estados_filosofos_guard) = estado_filosofos_local.write() {
             (*estados_filosofos_guard)[id] = ESTADO::COMIENDO
