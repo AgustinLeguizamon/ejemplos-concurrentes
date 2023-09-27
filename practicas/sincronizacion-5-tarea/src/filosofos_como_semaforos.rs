@@ -36,42 +36,52 @@ fn main() {
     }
 }
 
+fn der(id: usize) -> usize {
+    return (id + 1) % N;
+}
+
+fn izq(id: usize) -> usize {
+    return if id == 0 { N - 1 } else { id - 1 };;
+}
+
 fn filosofo(id: usize, filosofos: Arc<Vec<Semaphore>>, estado_filosofos: Arc<RwLock<Vec<ESTADO>>>) {
-    let der = (id + 1) % 5;
-    let izq = if id == 0 { N - 1 } else { id - 1 };
     let mut esperar = false;
     thread::sleep(Duration::from_millis(100 * id as u64));
 
     loop {
-        thread::sleep(Duration::from_millis(1000));
         println!("filosofo {} pensando", id);
+        thread::sleep(Duration::from_millis(thread_rng().gen_range(500, 1500)));
 
-        // sleep
-
-        // println!("filosofo {} esperando palito izq", id);
-        // println!("filosofo {} esperando palito der", id);
         println!("filosofo {} hambriento", id);
         // si mis vecinos estan comiendos entonces espero
         if let Ok(mut estados_filosofos_guard) = estado_filosofos.write() {
             (*estados_filosofos_guard)[id] = ESTADO::HAMBRIENTO;
-            if (*estados_filosofos_guard)[der] == ESTADO::COMIENDO || (*estados_filosofos_guard)[izq] == ESTADO::COMIENDO {
+            if ((*estados_filosofos_guard)[der(id)] == ESTADO::COMIENDO) || ((*estados_filosofos_guard)[izq(id)] == ESTADO::COMIENDO) {
                 esperar = true
             }
         }
         if esperar {
             filosofos[id].acquire();
         }
+        esperar = false;
 
+        // otro filoso me tiene que hacer un release a mi semaforo
         println!("filosofo {} comiendo", id);
         if let Ok(mut estados_filosofos_guard) = estado_filosofos.write() {
             (*estados_filosofos_guard)[id] = ESTADO::COMIENDO
         }
-
         thread::sleep(Duration::from_millis(thread_rng().gen_range(500, 1500)));
 
         if let Ok(mut estados_filosofos_guard) = estado_filosofos.write() {
             (*estados_filosofos_guard)[id] = ESTADO::PENSANDO;
-            filosofos[id].release()
+            // si el que esta a mi derecha esta hambriento y el que esta a su derecha NO esta comiendo entonces le puedo dar el palito
+            if ((*estados_filosofos_guard)[der(id)] == ESTADO::HAMBRIENTO) && ((*estados_filosofos_guard)[der(der(id))] != ESTADO::COMIENDO) {
+                // libero el semaforo del filosofo a mi derecha
+                filosofos[der(id)].release()
+            }
+            if ((*estados_filosofos_guard)[izq(id)] == ESTADO::HAMBRIENTO) && ((*estados_filosofos_guard)[izq(izq(id))] != ESTADO::COMIENDO) {
+                filosofos[izq(id)].release()
+            }
         }
 
         println!("filosofo {} termino de comer", id);
