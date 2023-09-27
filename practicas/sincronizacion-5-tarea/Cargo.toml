@@ -8,3 +8,12 @@ edition = "2021"
 [dependencies]
 std-semaphore = "0.1"
 rand = "0.7"
+
+[[bin]]
+name = "filosofos"
+path = "src/filosofos.rs"
+
+[[bin]]
+name = "filosofos_como_semaforos"
+path = "src/filosofos_como_semaforos.rs"
+
