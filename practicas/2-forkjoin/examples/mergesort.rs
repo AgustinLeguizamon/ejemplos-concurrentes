@@ -30,7 +30,8 @@ fn mergesort(data: &[i32]) -> Vec<i32> {
 
     merge(left, right)
 
-
+    // Esto es re poco performante dado el overhead de spawnear u nuevo thread y del join()
+    // pierod mas tiempo haciendo threads y joineando que operando
     // thread::scope(|s| {
     //     let left = s.spawn(move || mergesort(left_data));
     //     let right = s.spawn(move || mergesort(right_data));

@@ -120,8 +120,6 @@ fn crear_joyas(id:u32, almacen_acero:Arc<RwLock<i32>>, almacen_plata:Arc<RwLock<
         let plata_en_almacen = *plata_guard;
 
         if acero_en_almacen < COSTO_ACERO_JOYA || plata_en_almacen < COSTO_PLATA_JOYA {
-            drop(acero_guard);
-            drop(plata_guard);
             continue;
         }
 
