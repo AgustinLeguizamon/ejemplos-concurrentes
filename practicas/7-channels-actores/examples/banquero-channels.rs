@@ -24,7 +24,6 @@ fn main() {
         })
         .collect();
 
-
     loop {
         let mut plata_semana = iniciar_semana(&mut plata, &inversores);
 
