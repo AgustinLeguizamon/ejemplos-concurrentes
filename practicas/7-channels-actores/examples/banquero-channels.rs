@@ -30,7 +30,7 @@ fn main() {
 
         let mut devolvieron = HashSet::new();
 
-        while(devolvieron.len() < (INVERSORES as usize)) {
+        while devolvieron.len() < (INVERSORES as usize) {
             let (who, how_much) = devolucion_receive.recv().unwrap();
             if !devolvieron.contains(&who) {
                 devolvieron.insert(who);
@@ -48,8 +48,8 @@ fn main() {
 }
 
 fn iniciar_semana(plata: &mut f64, inversores: &Vec<(Sender<f64>, JoinHandle<()>)>) -> f64 {
-    let prestamo = plata / (INVERSORES as f64);
-    for (inversor, _) in &inversores {
+    let prestamo = *plata / (INVERSORES as f64);
+    for (inversor, _) in inversores {
         inversor.send(prestamo).unwrap();
     }
 
