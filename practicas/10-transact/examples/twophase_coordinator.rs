@@ -55,6 +55,9 @@ impl TransactionCoordinator {
 
     fn full_protocol(&mut self, t: TransactionId, force_continue: bool) -> bool {
         if self.prepare(t) {
+            // Esto de aca es para mostrar que el coordinador puede abortar
+            // metemos una condicion random como que las transacciones id 5,15,25,
+            // las aborta el coordinador
             if t.0 % 10 != 5 || force_continue { self.commit(t) } else { self.abort(t) }
         } else {
             self.abort(t)

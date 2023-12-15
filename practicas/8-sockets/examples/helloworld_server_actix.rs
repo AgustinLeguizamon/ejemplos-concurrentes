@@ -46,6 +46,9 @@ impl StreamHandler<Result<String, std::io::Error>> for HelloServer {
         if let Ok(line) = read {
             println!("[{:?}] Hello {}", self.addr, line);
             let arc = self.write.clone();
+            // Rust flashea que puedo entrar concurrentemente a este metodo a pesar de que el modelo de actores
+            // se basa en que nunca se puede manejar mas de un mensaje a la vez
+            // entonces necesitamos un Arc Mutex para "asegurarle" al compilador que no hay race condition
             wrap_future::<_, Self>(async move {
                 arc.lock().await
                     .write_all(format!("Hello {}\n", line).as_bytes()).await

@@ -8,6 +8,7 @@ use std::any::Any;
 use std_semaphore::Semaphore;
 
 
+// Es un cliente para el servicio de mutex centralizado del coordinador
 struct DistMutex {
     writer: TcpStream,
     reader: BufReader<TcpStream>
@@ -41,6 +42,7 @@ impl DistMutex {
 const CLIENTS: u32 = 3;
 
 fn main() {
+    // Emulo proceso independientes lanzandos threads pero en la realidad serían aplicaciones corriendo en maquinas distintas
     let coordinator = thread::spawn(coordinator);
     for id in 0..CLIENTS {
         thread::spawn(move || { client(id) });
@@ -48,6 +50,7 @@ fn main() {
     coordinator.join();
 }
 
+// Ecommerce cualquiera
 fn client(id:u32) {
 
     let mut mutex = DistMutex::new(id);
@@ -64,6 +67,7 @@ fn client(id:u32) {
         println!("[{}] tengo el lock", id);
         thread::sleep(Duration::from_millis(thread_rng().gen_range(1000u64..3000)));
 
+        // Este count es para modelar la caida de un cliente, nunca hago el release del mutex
         count += 1;
         if count > 2 {
             break;
@@ -76,6 +80,7 @@ fn client(id:u32) {
     println!("[{}] salí", id);
 }
 
+// Ecommerce lider
 fn coordinator() {
 
     let listener = TcpListener::bind("127.0.0.1:12345").unwrap();
@@ -96,6 +101,7 @@ fn coordinator() {
 
 }
 
+// del Ecommerce lider
 fn receiver(mut writer: TcpStream, mut reader: BufReader<TcpStream>, local_mutex: Arc<Semaphore>, id: String) {
     let mut mine = false;
 

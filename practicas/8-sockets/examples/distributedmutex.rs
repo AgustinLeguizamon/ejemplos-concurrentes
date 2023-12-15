@@ -17,7 +17,12 @@ fn id_to_addr(id: usize) -> String {
 struct DistMutex {
     id: usize,
     socket: UdpSocket,
+    // 2. Si esta en la CS, no responde y encola el mensaje. Cuando sale de la SC, envia OK
+    // Vec<> osea un array con la dir de todos aquellos que me pidieron entrar en la SC
+    // Option un timestamp de cuando empecé yo, si quería empezar
     lock_needed: Arc<Mutex<(Option<u128>, Vec<SocketAddr>)>>,
+    // Conjunto de todos los que ya me dieron su OK, la Condvar es para poner al sistema en espera
+    // al momento de hacer el acquire
     ok_acc: Arc<(Mutex<HashSet<SocketAddr>>, Condvar)>,
 }
 
@@ -77,17 +82,23 @@ impl DistMutex {
                 println!("[{}] recibí pedido de {}. timestamp {}", self.id, from, requested_timestamp);
                 let mut pair = self.lock_needed.lock().unwrap();
                 match pair.0 {
+                    // Quiero entrar a la SC pero este tiene mas prioridad
                     Some(my_timestamp) if requested_timestamp < my_timestamp => {
                         self.socket.send_to("OK".as_bytes(), from).unwrap();
                         println!("[{}] pidió timestamp menor, contesté a {}", self.id, from);
                     }
                     None => {
+                        // No me interesa entrar a la SC asi que se lo doy
                         // Esperar para forzar el interleaving
                         thread::sleep(Duration::from_millis(thread_rng().gen_range(500..1000)));
                         self.socket.send_to("OK".as_bytes(), from).unwrap();
                         println!("[{}] contesté a {}", self.id, from);
                     }
                     _ => {
+                        // Me interesa entrar a la SC y tengo prioridad o ya estoy en la SC
+                        // ¿Que pasa si ya estoy en la SC y me llegan pedidos?
+                        // Rta: como mi timestamp sigue siendo menor que las de nuevos pedidos
+                        // termino encolandolos
                         pair.1.push(from);
                         println!("[{}] encolando a {}", self.id, from);
                     }

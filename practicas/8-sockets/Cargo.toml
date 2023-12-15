@@ -3,6 +3,14 @@ name = "sockets"
 version = "0.1.0"
 edition = "2018"
 
+[[bin]]
+name = "client"
+path = "examples/helloworld_client.rs"
+
+[[bin]]
+name = "server"
+path = "examples/helloworld_server.rs"
+
 [dependencies]
 rand = "0.8.5"
 std-semaphore = "0.1"

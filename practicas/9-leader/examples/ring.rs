@@ -84,6 +84,8 @@ impl LeaderElection {
         }
         *self.got_ack.0.lock().unwrap() = None;
         self.socket.send_to(msg, id_to_ctrladdr(next_id));
+        // Espero a que mi sucesor me devuelva que recibio bien mi msg
+        // caso contrario lo envio al sucesor del sucesor
         let got_ack = self.got_ack.1.wait_timeout_while(self.got_ack.0.lock().unwrap(), TIMEOUT, |got_it| got_it.is_none() || got_it.unwrap() != next_id );
         if got_ack.unwrap().1.timed_out() {
             self.safe_send_next(msg, next_id)
@@ -108,9 +110,12 @@ impl LeaderElection {
                     self.socket.send_to(&self.ids_to_msg(b'A', &[self.id]), from).unwrap();
                     if ids.contains(&self.id) {
                         // dio toda la vuelta, cambiar a COORDINATOR
+                        // el que inicio la elección es el que termina diciendo quien gano
                         let winner = *ids.iter().max().unwrap();
                         self.socket.send_to(&self.ids_to_msg(b'C', &[winner, self.id]), from).unwrap();
                     } else {
+                        // agrego mi id y le envio el msg a mi sucesor; en distinto
+                        // thread para no bloquear el socket
                         ids.push(self.id);
                         let msg = self.ids_to_msg(b'E', &ids);
                         let clone = self.clone();
@@ -119,6 +124,7 @@ impl LeaderElection {
                 }
                 b'C' => {
                     println!("[{}] recibí nuevo coordinador de {}, ids {:?}", self.id, from, ids);
+                    // Se que el primero de ids es el id del nuevo coordinador
                     *self.leader_id.0.lock().unwrap() = Some(ids[0]);
                     self.leader_id.1.notify_all();
                     self.socket.send_to(&self.ids_to_msg(b'A', &[self.id]), from).unwrap();

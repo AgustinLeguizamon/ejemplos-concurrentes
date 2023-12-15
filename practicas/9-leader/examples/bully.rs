@@ -20,6 +20,8 @@ const TIMEOUT: Duration = Duration::from_secs(5);
 struct LeaderElection {
     id: usize,
     socket: UdpSocket,
+    // Identificador del último lider conocido, el condvar es para que espere
+    // en el caso de que haya una elección en progreso
     leader_id: Arc<(Mutex<Option<usize>>, Condvar)>,
     got_ok: Arc<(Mutex<bool>, Condvar)>,
     stop: Arc<(Mutex<bool>, Condvar)>,
@@ -55,13 +57,15 @@ impl LeaderElection {
             return
         }
         if self.leader_id.0.lock().unwrap().is_none() {
-            // ya esta buscando lider
+            // ya esta buscando lider. e.g: lo dispare yo pero tambien me llego un Election de otro nodo, evito dispararlo de nuevo
             return
         }
         println!("[{}] buscando lider", self.id);
+        // Limpio valores de elección anterior
         *self.got_ok.0.lock().unwrap() = false;
         *self.leader_id.0.lock().unwrap() = None;
         self.send_election();
+        // wait_timeout_while es: "si nadie responde, P gana la elección"
         let got_ok = self.got_ok.1.wait_timeout_while(self.got_ok.0.lock().unwrap(), TIMEOUT, |got_it| !*got_it );
         if !*got_ok.unwrap().0 {
             self.make_me_leader()
@@ -116,6 +120,8 @@ impl LeaderElection {
                     if id_from < self.id {
                         self.socket.send_to(&self.id_to_msg(b'O'), id_to_ctrladdr(id_from)).unwrap();
                         let mut me = self.clone();
+                        // Tengo que lanzarlo en otro thread pq si no quedaria bloqueado
+                        // y nunca leeria los mensajes de OK o Coordinator de los otros
                         thread::spawn(move || me.find_new());
                     }
                 }
@@ -134,6 +140,9 @@ impl LeaderElection {
     }
 
     fn stop(&mut self) {
+        // Esto se escribe en el thread de team member mientras el stop se lee tambien
+        // en el thread del receiver, por eso uso Mutex y Condvar
+        // Tengo que esperar a que el receiver termine
         *self.stop.0.lock().unwrap() = true;
         self.stop.1.wait_while(self.stop.0.lock().unwrap(), |should_stop| *should_stop);
     }
