@@ -3,6 +3,7 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
+use rand::{Rng, thread_rng};
 use std_semaphore::Semaphore;
 
 struct DistMutex {
@@ -120,6 +121,8 @@ fn cliente(id: i32) {
     let mut count = 0;
 
     loop {
+        println!("[{}] durmiendo", id);
+        thread::sleep(Duration::from_millis(thread_rng().gen_range(1000u64..3000)));
         println!("[{}] pide el lock", id);
         mutex.acquire();
 
