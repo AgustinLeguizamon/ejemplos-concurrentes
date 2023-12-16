@@ -2,9 +2,9 @@
 
 Must do
 - Hacer filosofos con channels? NO
-Hacer banquero de la clase con channels como para repasar. DONE
-- Repasar algoritmos exclusión mutua distribuida: saber codear un mutex centralizado, descentralizado, token ring
-- Repasar algoritmos de seleccion de algoritmos descentralizados
+Hacer banquero de la clase con channels como para repasar. - DONE
+- Repasar algoritmos exclusión mutua distribuida: saber codear un mutex centralizado, descentralizado, token ring - DONE
+- Repasar algoritmos de seleccion
 Saber codear un algoritmo de seleccion de lider, el de token es muy feo dudo que pidan codear eso
 - Repasar transacciones, 
 Saber codear algoritmo de dos fases?? Ariel dijo que es muy raro. Ver bien como es la lógica pero sin necesidad de codear
