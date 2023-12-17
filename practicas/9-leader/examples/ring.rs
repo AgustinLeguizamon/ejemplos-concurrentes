@@ -128,6 +128,8 @@ impl LeaderElection {
                     *self.leader_id.0.lock().unwrap() = Some(ids[0]);
                     self.leader_id.1.notify_all();
                     self.socket.send_to(&self.ids_to_msg(b'A', &[self.id]), from).unwrap();
+                    // Si en el resto de ids no me encuentro es pq todavía no recibí el msg COORDINATOR
+                    // me agrego y le paso el msg a mi sucesor
                     if !ids[1..].contains(&self.id) {
                         ids.push(self.id);
                         let msg = self.ids_to_msg(b'C', &ids);
